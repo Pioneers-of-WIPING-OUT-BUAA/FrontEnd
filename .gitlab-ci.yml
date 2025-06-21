@@ -1,0 +1,33 @@
+stages:
+  - install
+  - build
+
+cache:
+  paths:
+    - node_modules/
+
+install:
+  stage: install
+  tags:
+    - shell
+  script:
+    - npm install
+    - cp RosLib.js ./node_modules/roslib/src/RosLib.js
+    - npm run build
+    - ls -l  # 查看当前目录文件
+    - pwd  # 查看 dist 目录是否存在
+  artifacts:
+    paths:
+      - dist/
+
+build:
+  stage: build
+  tags:
+    - shell
+  script:
+    - pwd
+    - rm -rf /se/front
+    - cp -r dist /se/front
+
+  only:
+    - main
