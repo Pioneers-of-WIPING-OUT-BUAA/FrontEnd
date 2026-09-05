@@ -1,101 +1,55 @@
 <template>
   <div class="kinect-container">
-    <img v-if="!wsError && !imgError" :src="url" fit="scale-down" class="kinect" @error="onImgError" />
+    <img v-if="url && !wsError && !imgError" :src="url" fit="scale-down" class="kinect" @error="onImgError" />
     <div v-else-if="wsError" class="kinect-error">摄像头连接异常，请检查网络或ROSBridge</div>
     <div v-else-if="imgError" class="kinect-error">暂未收到摄像头画面</div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import 'roslib/build/roslib'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { wsStore } from '@/stores/wsStore'
 import ROSLIB from 'roslib'
 
-// Publishing a Topic
-// Subscribing to a Topic
+const ws = wsStore()
 const url = ref('')
-let listener: ROSLIB.Topic | null = null
-const wsError = ref(false) // WebSocket连接异常
-const imgError = ref(false) // 图像流异常
-let imgTimeout: any = null // 图像流超时定时器
+const wsError = computed(() => !ws.isConnected)
+const imgError = ref(false)
 
-function subscribe() {
-  const ws = wsStore()
-  const ros = ws.ws
-  console.log('[KinectDisplay] subscribe called, ros:', ros)
-  if (!ros || ros.isConnected === false) {
-    wsError.value = true
-    console.log('[KinectDisplay] WebSocket未连接')
-    return
+watch(() => ws.ws, (ros, _, onCleanup) => {
+  url.value = ''
+  imgError.value = false
+  if (!ros) return
+  let timeout: ReturnType<typeof setTimeout>
+  let active = true
+  const armTimeout = () => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => { imgError.value = true }, 3000)
   }
-  wsError.value = false
-  listener = new (window as any).ROSLIB.Topic({
-    ros: ros,
+  const listener = new ROSLIB.Topic({
+    ros,
     name: '/kinect2/hd/image_color_rect/compressed',
     messageType: 'sensor_msgs/CompressedImage',
-    queue_size: 1, // 必须配合throttle_rate才能生效
-    throttle_rate: 5 // 猜测是获取消息间隔，单位ms，大了会更新不及时，小了浪费带宽
+    queue_length: 1,
+    throttle_rate: 100
   })
-  listener.subscribe(function (message: any) {
-    if (message && message.data) {
-      url.value = 'data:image/jpeg;base64, ' + message.data
-      imgError.value = false
-      // 每次收到新图片，重置超时定时器
-      if (imgTimeout) clearTimeout(imgTimeout)
-      imgTimeout = setTimeout(() => {
-        imgError.value = true
-        console.log('[KinectDisplay] 3秒未收到新图片，触发imgError')
-      }, 3000) // 3秒未收到新图片则提示异常
-    } else {
-      console.log('[KinectDisplay] 收到消息但无data字段:', message)
-    }
+  listener.subscribe((message: any) => {
+    if (!active || !message?.data) return
+    url.value = 'data:image/jpeg;base64,' + message.data
+    imgError.value = false
+    armTimeout()
   })
-}
-
-function Unsubscribe() {
-  if (listener) {
-    listener?.unsubscribe()
-    console.log('[KinectDisplay] 已取消订阅listener')
-  }
-  if (imgTimeout) {
-    clearTimeout(imgTimeout)
-    console.log('[KinectDisplay] 清除imgTimeout')
-  }
-}
+  armTimeout()
+  onCleanup(() => {
+    active = false
+    listener.unsubscribe()
+    clearTimeout(timeout)
+  })
+}, { immediate: true })
 
 function onImgError() {
   imgError.value = true
-  console.log('[KinectDisplay] 图片加载出错，触发imgError')
 }
-
-onMounted(() => {
-  subscribe()
-  console.log('[KinectDisplay] onMounted，已调用subscribe')
-})
-
-onUnmounted(() => {
-  Unsubscribe()
-  console.log('[KinectDisplay] onUnmounted，已调用Unsubscribe')
-})
-
-onMounted(() => {
-  let tmpFunc = window.onbeforeunload
-  if (tmpFunc !== null) {
-    window.onbeforeunload = function (event) {
-      Unsubscribe()
-      console.log('[KinectDisplay] onbeforeunload，已调用Unsubscribe')
-      if (typeof tmpFunc === 'function') {
-        tmpFunc.call(this, event)
-      }
-    }
-  } else {
-    window.onbeforeunload = function () {
-      Unsubscribe()
-      console.log('[KinectDisplay] onbeforeunload，已调用Unsubscribe')
-    }
-  }
-})
 </script>
 
 <style scoped>

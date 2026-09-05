@@ -123,7 +123,6 @@ function setMode() {
 
 async function submitPwdUpdate() {
   try {
-    console.log('提交密码修改', pwdForm.value)
     const res = await authUpdatePwdReq('post', pwdForm.value)
     ElNotification({
       title: '成功',
@@ -149,8 +148,8 @@ async function toggleRosConnection() {
   try {
     if (ws.isConnected) {
       // 先断开WebSocket，再释放后端ROS
+      await rosFreeReq('get')
       ws.disconnect()
-      await rosFreeReq('post')
       ElNotification({
         title: '成功',
         message: '已断开机器人',
@@ -159,7 +158,7 @@ async function toggleRosConnection() {
     } else {
       // 先请求后端连接ROS，成功后再WebSocket连接
       await rosConnectReq('get')
-      ws.connect()
+      await ws.connect()
       ElNotification({
         title: '成功',
         message: '已连接机器人',
@@ -285,5 +284,10 @@ watchEffect(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+@media (max-width: 720px) {
+  .header-bar { height: auto; min-height: 60px; flex-wrap: wrap; padding: 8px; gap: 8px; }
+  .right-controls { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .right-controls :deep(.el-button + .el-button) { margin-left: 0; }
 }
 </style>

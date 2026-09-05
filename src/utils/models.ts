@@ -11,8 +11,9 @@ export interface MapInfo {
   id?: number
   url?: string
   name?: string
-  x: number
-  y: number
+  x?: number
+  y?: number
+  resolution?: number
 }
 
 export interface PointInfo {

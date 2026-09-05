@@ -1,5 +1,5 @@
 <template>
-  <el-menu :default-active="$route.path" class="el-menu-vertical" router :unique-opened="false" :collapse="false">
+  <el-menu :default-active="$route.path" class="el-menu-vertical" router :unique-opened="false" :collapse="collapsed">
     <el-sub-menu index="map">
       <template #title>
         <el-icon><i class="mdi mdi-map-outline" /></el-icon>
@@ -7,11 +7,11 @@
       </template>
       <el-menu-item index="/mapping">
         <el-icon><i class="mdi mdi-map" /></el-icon>
-        建图模式
+        <span>建图模式</span>
       </el-menu-item>
       <el-menu-item index="/mapping-mark">
         <el-icon><i class="mdi mdi-map-marker" /></el-icon>
-        航点标注
+        <span>航点标注</span>
       </el-menu-item>
     </el-sub-menu>
 
@@ -27,11 +27,11 @@
       </template>
       <el-menu-item index="/staff">
         <el-icon><i class="mdi mdi-account-group" /></el-icon>
-        人员管理
+        <span>人员管理</span>
       </el-menu-item>
       <el-menu-item index="/log">
         <el-icon><i class="mdi mdi-alert-octagon-outline" /></el-icon>
-        险情日志
+        <span>险情日志</span>
       </el-menu-item>
     </el-sub-menu>
   </el-menu>
@@ -39,8 +39,14 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { ref, onUnmounted } from 'vue'
 
 const route = useRoute()
+const media = window.matchMedia('(max-width: 720px)')
+const collapsed = ref(media.matches)
+const update = () => { collapsed.value = media.matches }
+media.addEventListener('change', update)
+onUnmounted(() => media.removeEventListener('change', update))
 </script>
 
 <style scoped>

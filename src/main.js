@@ -9,11 +9,14 @@ import 'element-plus/dist/index.css'
 import '@mdi/font/css/materialdesignicons.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import { createPinia } from 'pinia'
+import ROSLIB from 'roslib'
+
+window.ROSLIB = ROSLIB
 
 const app = createApp(App)
 
+app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)
-app.use(createPinia())
 
 app.mount('#app')

@@ -34,18 +34,16 @@ const showSidebar = computed(() => ui.currentTopTab == 'map' || ui.currentTopTab
 
 <style scoped>
 .fixed-layout {
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 /* 顶部导航栏固定 */
 .fixed-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
+  flex: none;
   z-index: 1000;
   background-color: var(--el-bg-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -54,16 +52,14 @@ const showSidebar = computed(() => ui.currentTopTab == 'map' || ui.currentTopTab
 /* 主体部分（侧边栏 + 内容） */
 .fixed-body {
   display: flex;
-  position: fixed;
-  top: 60px; /* 下移 60px，避开 header */
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex: 1;
+  min-height: 0;
 }
 
 /* 左侧固定侧边栏 */
 .fixed-aside {
   width: 200px;
+  flex-shrink: 0;
   background-color: var(--el-bg-color-page);
   border-right: 1px solid var(--el-border-color);
   overflow-y: auto;
@@ -72,8 +68,12 @@ const showSidebar = computed(() => ui.currentTopTab == 'map' || ui.currentTopTab
 /* 内容区域 */
 .fixed-main {
   flex: 1;
+  min-width: 0;
   padding: 5px;
   overflow-y: auto;
   background-color: var(--el-bg-color-page);
+}
+@media (max-width: 720px) {
+  .fixed-aside { width: 64px; }
 }
 </style>

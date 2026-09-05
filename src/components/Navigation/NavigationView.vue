@@ -32,6 +32,7 @@ import { ref, defineEmits, withDefaults, defineProps, onMounted, watch } from 'v
 import NavigationCtrl from '@/components/Navigation/NavigationCtrl.vue'
 import { MapInfo } from '@/utils/models'
 import WaypointSort from '@/components/Navigation/WaypointSort.vue'
+import { ElMessage } from 'element-plus'
 
 interface autoProps {
   mapInfo: MapInfo
@@ -51,10 +52,11 @@ const isInitialized = ref(false)
 let patrolInfo = ref<{ path: { x: number; y: number; yaw: number; name: string }[]; loop: number; name?: string } | null>(null)
 
 function startPatrol(info: { path: { x: number; y: number; yaw: number; name: string }[]; loop: number; name: string }) {
-  patrolInfo.value = info
-  if (patrolInfo.value.loop !== 0) {
-    patrolInfo.value.path.push(patrolInfo.value.path[0])
+  if (!info.path.length) {
+    ElMessage.error('请先添加航点')
+    return
   }
+  patrolInfo.value = info
   step.value = 2
 }
 

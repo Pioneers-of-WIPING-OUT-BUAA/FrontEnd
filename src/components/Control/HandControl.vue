@@ -85,18 +85,13 @@ function beforeUnload() {
 
 // 组件卸载时清理
 onUnmounted(() => {
+  window.removeEventListener('pagehide', beforeUnload)
   beforeUnload()
 })
 
 // 组件挂载时设置页面退出事件
 onMounted(() => {
-  let tmpFunc = window.onbeforeunload
-  window.onbeforeunload = () => {
-    beforeUnload()
-    if (typeof tmpFunc === 'function') {
-      tmpFunc.call(window)
-    }
-  }
+  window.addEventListener('pagehide', beforeUnload)
 })
 </script>
 

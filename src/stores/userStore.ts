@@ -20,7 +20,13 @@ export const userStore = defineStore('user', () => {
   if (localUser === null) {
     user.value = defaultInfo
   } else {
-    user.value = JSON.parse(localUser)
+    try {
+      const stored = JSON.parse(localUser)
+      user.value = stored && typeof stored === 'object' ? { ...defaultInfo, ...stored } : { ...defaultInfo }
+    } catch {
+      user.value = { ...defaultInfo }
+      localStorage.removeItem('user')
+    }
   }
   const avatar = computed(() => user.value.avatar)
   const username = computed(() => user.value.username)

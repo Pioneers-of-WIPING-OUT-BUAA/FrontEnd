@@ -19,6 +19,7 @@ interface autoProps {
   editable: boolean
   propX: number
   propY: number
+  resolution?: number
 }
 
 const props = withDefaults(defineProps<autoProps>(), {
@@ -26,7 +27,8 @@ const props = withDefaults(defineProps<autoProps>(), {
   pointInfo: () => [],
   editable: true,
   propX: 0,
-  propY: 0
+  propY: 0,
+  resolution: 0.03
 })
 
 const emit = defineEmits(['update'])
@@ -41,7 +43,6 @@ let centerY = 0
 let scale = 0
 let canvas: HTMLCanvasElement | null = null
 let ctx: CanvasRenderingContext2D | null = null
-let resolution = 0.03
 const img = new Image()
 const isMapLoaded = ref(false)
 let originX: number, originY: number
@@ -70,8 +71,8 @@ onMounted(() => {
     originHeight = img.height
     const sourceAspectRatio = img.width / img.height
     const targetAspectRatio = canvas!.width / canvas!.height
-    centerX = props.propX !== 0 ? Math.abs(props.propX) / resolution : img.width / 2
-    centerY = props.propY !== 0 ? Math.abs(props.propY) / resolution : img.height / 2
+    centerX = -props.propX / props.resolution
+    centerY = -props.propY / props.resolution
 
     scale = targetAspectRatio > sourceAspectRatio ? canvas!.height / img.height : canvas!.width / img.width
 
@@ -199,8 +200,8 @@ function drawPoint(points: autoProps['pointInfo']) {
 }
 
 function originPos2imgPos(x: number, y: number, theta: number) {
-  let tmpX = x / resolution + centerX
-  let tmpY = originHeight - (y / resolution + centerY)
+  let tmpX = x / props.resolution + centerX
+  let tmpY = originHeight - (y / props.resolution + centerY)
   let newTheta = Math.PI * 2 - ((theta + Math.PI * 2) % (Math.PI * 2))
   return { x: tmpX * scale, y: tmpY * scale, theta: newTheta }
 }
@@ -208,8 +209,8 @@ function originPos2imgPos(x: number, y: number, theta: number) {
 function imgPos2originPos(x: number, y: number, theta: number) {
   let tmpX = x / scale
   let tmpY = y / scale
-  let newX = (tmpX - centerX) * resolution
-  let newY = (originHeight - tmpY - centerY) * resolution
+  let newX = (tmpX - centerX) * props.resolution
+  let newY = (originHeight - tmpY - centerY) * props.resolution
   let newTheta = Math.PI * 2 - theta >= Math.PI ? -theta : Math.PI * 2 - theta
   return { x: newX, y: newY, theta: newTheta }
 }

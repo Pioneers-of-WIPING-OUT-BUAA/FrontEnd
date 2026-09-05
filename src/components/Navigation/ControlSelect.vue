@@ -7,11 +7,11 @@
       @select="handleTabSelect"
       mode="horizontal"
     >
-      <el-menu-item index="usercontrol">
+      <el-menu-item index="usercontrol" :disabled="switching">
         <!-- <el-icon><i class="mdi mdi-controller" /></el-icon> -->
         <span>用户控制</span>
       </el-menu-item>
-      <el-menu-item index="navigation">
+      <el-menu-item index="navigation" :disabled="switching">
         <!-- <el-icon><i class="mdi mdi-robot-industrial-outline" /></el-icon> -->
         <span>巡检模式</span>
       </el-menu-item>
@@ -30,51 +30,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, defineProps, nextTick } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import UserControl from '@/views/UserControl.vue'
 import NavigationView from '@/components/Navigation/NavigationView.vue'
-import { MapInfo } from '@/components/models'
+import type { MapInfo } from '@/utils/models'
+import { navStartReq, navEndReq } from '@/api/nav'
+import { ctrlKeyboardReq } from '@/api/userCtrl'
 
-interface autoProps {
-  mapInfo: MapInfo
-}
-
-const props = withDefaults(defineProps<autoProps>(), {
-  mapInfo: {}
-})
-
+const props = defineProps<{ mapInfo: MapInfo }>()
 const tab = ref('usercontrol')
 const navigationInitialized = ref(false)
-const userControlInitialized = ref(false)
-const navigationViewRef = ref<InstanceType<typeof NavigationView> | null>(null)
-const emits = defineEmits(['back', 'nav-init'])
+const userControlInitialized = ref(true)
+const switching = ref(false)
+const emits = defineEmits(['back'])
+let disposed = false
 
-function handleTabSelect(index: string) {
-  tab.value = index
-
-  // 根据选中的标签页初始化对应的组件
-  if (index === 'navigation' && !navigationInitialized.value) {
-    // 首次选择导航模式时，触发导航初始化事件
-    emits('nav-init')
-
-    navigationInitialized.value = true
-
-    // 等待组件渲染完成后初始化
-    nextTick(() => {
-      // 在下一个微任务中执行，确保组件已完全挂载
-      setTimeout(() => {
-        if (navigationViewRef.value) {
-          navigationViewRef.value.initialize()
-        }
-      }, 100)
-    })
-  } else if (index === 'usercontrol' && !userControlInitialized.value) {
-    userControlInitialized.value = true
+async function handleTabSelect(index: string) {
+  if (switching.value || index === tab.value) return
+  switching.value = true
+  try {
+    if (index === 'navigation') {
+      await ctrlKeyboardReq('post', { direction: 'r', speed: 0 })
+      await navStartReq('get', props.mapInfo.id as number)
+      if (disposed) { await navEndReq('get', {}); return }
+      navigationInitialized.value = true
+    } else {
+      await navEndReq('get', {})
+    }
+    tab.value = index
+  } catch {
+    // Keep the previously confirmed mode when the transition fails.
+  } finally {
+    switching.value = false
   }
 }
-
-// 初始化默认选中的用户控制组件
-userControlInitialized.value = true
+onUnmounted(() => {
+  disposed = true
+  if (tab.value === 'navigation') navEndReq('get', {}).catch(() => {})
+})
 </script>
 
 <style scoped>

@@ -4,22 +4,23 @@
     <el-col :span="11">
       <el-card>
         <div
-          v-for="(log, i) in partOfLog"
+          v-for="(log, i) in logs"
           :key="log.id"
           style="cursor: pointer; margin-bottom: 8px"
           @click="clickItem(log)"
         >
           <el-text tag="h4"> [{{ eventTypeMap[log.event_type] }}] {{ log.detail }} </el-text>
           <el-text type="info" size="small">{{ log.time }} | 坐标: ({{ log.x }}, {{ log.y }})</el-text>
-          <el-divider v-if="i !== partOfLog.length - 1" />
+          <el-divider v-if="i !== logs.length - 1" />
         </div>
 
         <div style="text-align: center; margin-top: 10px">
           <el-pagination
-            v-if="pageOfLog > 1"
+            v-if="total > size"
             v-model:current-page="cur"
             :page-size="size"
-            :total="logs.length"
+            :total="total"
+            :disabled="loading"
             layout="prev, pager, next"
             background
           />
@@ -46,48 +47,35 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { logListReq } from '@/api/log'
 
 const logs = ref<any[]>([])
 const cur = ref(1)
 const size = 7
+const total = ref(0)
+const loading = ref(false)
 const chosenOne = ref<any>(null)
+const eventTypeMap: Record<number, string> = { 1: '明火', 2: '烟雾', 3: '陌生人', 4: '垃圾' }
+let generation = 0
 
-const eventTypeMap: Record<number, string> = {
-  1: '明火',
-  2: '烟雾',
-  3: '陌生人',
-  4: '垃圾'
-}
-
-const partOfLog = computed(() => {
-  return logs.value.slice((cur.value - 1) * size, cur.value * size)
-})
-
-const pageOfLog = computed(() => {
-  return Math.ceil(logs.value.length / size)
-})
-
-async function init() {
-  const response = await logListReq('get')
-  if (response && response.data && response.data.logs) {
+watch(cur, async page => {
+  const current = ++generation
+  loading.value = true
+  try {
+    const response = await logListReq('get', { page, page_size: size })
+    if (current !== generation) return
     logs.value = response.data.logs
-  } else {
-    logs.value = [
-      { id: 1, event_type: 3, detail: '发现陌生人', time: '2023-10-01 12:30', x: 12.3, y: 45.6, url: 'map.png' },
-      { id: 2, event_type: 2, detail: '检测到烟雾', time: '2023-10-02 14:15', x: 78.9, y: 11.2, url: 'smoke.png' }
-    ]
+    total.value = response.data.total
+    chosenOne.value = null
+  } catch {
+    if (current === generation) logs.value = []
+  } finally {
+    if (current === generation) loading.value = false
   }
-}
+}, { immediate: true })
 
-function clickItem(log: any) {
-  chosenOne.value = log
-}
-
-onMounted(() => {
-  init()
-})
+function clickItem(log: any) { chosenOne.value = log }
 </script>
 
 <style scoped>

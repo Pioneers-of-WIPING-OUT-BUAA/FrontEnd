@@ -1,8 +1,8 @@
 import { request, fileRequest } from './api'
 
-export function logListReq(method: string) {
+export function logListReq(method: string, params: { page?: number; page_size?: number } = {}) {
   const url = '/log/list'
-  return request(url, method, {})
+  return request(url, method, params)
 }
 
 export function logLatestReq(method: string) {

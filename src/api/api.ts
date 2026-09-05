@@ -1,121 +1,40 @@
-import axios, { AxiosRequestConfig } from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import { userStore } from '@/stores/userStore'
 
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+export const http = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  timeout: 15000
+})
 
-// 通用消息提示封装
-function showError(msg: string) {
-  ElMessage({
-    message: msg,
-    type: 'error',
-    showClose: true,
-    duration: 3000
-  })
-}
-
-export async function request(url: string, method: string, params: object, timeout = 15000) {
-  const options: AxiosRequestConfig = { url, method, headers: {} }
-  axios.defaults.timeout = timeout
-  const token = getSessionToken()
-  const tokenObj = token ? { Authorization: 'Bearer ' + token } : {}
-  options.headers = { ...tokenObj }
-
-  if (typeof params !== 'undefined') {
-    if (method.toLowerCase() === 'get' || method.toLowerCase() === 'delete') {
-      options.params = params
-    } else {
-      options.data = params
-    }
+http.interceptors.response.use(
+  response => response,
+  error => {
+    const status = error.response?.status
+    const message = status === 401
+      ? '登录过期，请重新登录'
+      : error.response?.data?.error_msg || (error.response ? '请求失败' : '无法连接服务器')
+    ElMessage({ message, type: 'error', showClose: true, duration: 3000 })
+    if (status === 401) userStore().logout()
+    return Promise.reject(error)
   }
+)
 
-  axios.interceptors.response.use(
-    (response) => response,
-    (e) => {
-      if (e.response) {
-        const tmp = e.response
-        switch (tmp.status) {
-          case 400:
-            showError(tmp.data.error_msg || '请求错误')
-            break
-          case 401:
-            showError('登录过期，请重新登录')
-            logout()
-            break
-          case 500:
-            showError('500 Internal Server Error')
-            break
-          case 404:
-            showError(tmp.data.error_msg || '请求资源未找到')
-            break
-          default:
-            showError(tmp.data.error_msg || '请求错误')
-            break
-        }
-      }
-      return Promise.reject(e)
-    }
-  )
-
-  const response = await axios.request(options)
-  return response
-}
-
-export async function fileRequest(url: string, method: string, params: object, timeout = 15000) {
-  axios.defaults.timeout = timeout
-  const options: AxiosRequestConfig = { url, method, headers: {} }
-  const token = getSessionToken()
-  const tokenObj = token ? { Authorization: 'Bearer ' + token } : {}
-
-  if (typeof params !== 'undefined') {
-    if (method.toLowerCase() === 'get') {
-      options.params = params
-      options.responseType = 'blob'
-      options.headers = { ...tokenObj }
-    } else {
-      options.data = params
-      options.headers = { 'Content-Type': 'multipart/form-data', ...tokenObj }
-    }
+function send(url: string, method: string, params: object | undefined, timeout: number, responseType?: 'blob') {
+  const token = userStore().token
+  const options: AxiosRequestConfig = {
+    url, method, timeout, responseType,
+    headers: token ? { Authorization: 'Bearer ' + token } : {}
   }
-
-  axios.interceptors.response.use(
-    (response) => response,
-    (e) => {
-      if (e.response) {
-        const tmp = e.response
-        switch (tmp.status) {
-          case 400:
-            showError(tmp.data.error_msg || '请求错误')
-            break
-          case 401:
-            showError('登录过期，请重新登录')
-            logout()
-            break
-          case 500:
-            showError('500 Internal Server Error')
-            break
-          case 404:
-            showError(tmp.data.error_msg || '请求资源未找到')
-            break
-          default:
-            showError(tmp.data.error_msg || '请求错误')
-            break
-        }
-      }
-      return Promise.reject(e)
-    }
-  )
-
-  const response = await axios.request(options)
-  return response
+  if (['get', 'delete'].includes(method.toLowerCase())) options.params = params
+  else options.data = params
+  return http.request(options)
 }
 
-function getSessionToken() {
-  const user = userStore()
-  return user.token
+export function request(url: string, method: string, params: object = {}, timeout = 15000) {
+  return send(url, method, params, timeout)
 }
 
-function logout() {
-  const user = userStore()
-  user.logout()
+export function fileRequest(url: string, method: string, params: object = {}, timeout = 15000) {
+  return send(url, method, params, timeout, method.toLowerCase() === 'get' ? 'blob' : undefined)
 }

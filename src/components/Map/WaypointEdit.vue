@@ -25,9 +25,9 @@
             <template #default="scope">
               <el-input
                 v-if="editable"
-                v-model="scope.row.name"
+                :model-value="scope.row.name"
                 size="small"
-                @change="(val) => changeName(val, scope.row.name)"
+                @change="(val) => changeName(val, scope.row.id)"
               />
               <span v-else>{{ scope.row.name }}</span>
             </template>
@@ -54,6 +54,7 @@
         :editable="editable"
         :prop-x="props.mapInfo.x"
         :prop-y="props.mapInfo.y"
+        :resolution="props.mapInfo.resolution"
         :key="disKey"
       />
     </div>
@@ -90,7 +91,6 @@ async function insertPoint(info: { x: number; y: number; theta: number; id: numb
   })
 
   const newPoint = { ...info, name: String(name) }
-  pointInfo.value.push(newPoint)
 
   if (props.mapInfo && props.mapInfo.id) {
     await markPointReq('post', props.mapInfo.id, newPoint)
@@ -105,15 +105,15 @@ async function deleteInfo(info: { id: number }) {
   await init()
 }
 
-async function changeName(newName: string, oldName: string) {
-  if (pointInfo.value.some((p) => p.name === newName && newName !== oldName)) {
+async function changeName(newName: string, id: number) {
+  if (pointInfo.value.some((p) => p.name === newName && p.id !== id)) {
     ElNotification.error(`${newName} 已存在，修改失败`)
     return
   }
-  const target = pointInfo.value.find((p) => p.name === oldName)
+  const target = pointInfo.value.find((p) => p.id === id)
   if (target) {
-    target.name = newName
     await renamePointReq('post', { id: target.id, name: newName })
+    target.name = newName
     disKey.value ^= 1 // 强制刷新地图标注组件
   }
 }

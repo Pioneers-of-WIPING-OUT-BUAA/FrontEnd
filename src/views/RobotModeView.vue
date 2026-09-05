@@ -14,15 +14,14 @@
     </div>
 
     <div v-if="step === 2" class="step-content">
-      <control-select @back="backToStep1" :map-info="mapInfo" @nav-init="handleNavInit" />
+      <control-select @back="backToStep1" :map-info="mapInfo" />
     </div>
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { MapInfo } from '@/utils/models'
-import { navStartReq, navEndReq } from '@/api/nav'
 import ControlSelect from '@/components/Navigation/ControlSelect.vue'
 import MapSelect from '@/components/Map/MapSelect.vue'
 import { kinectStore } from '@/stores/kinectStore'
@@ -41,39 +40,13 @@ function goToStep2() {
   step.value = 2
 }
 
-// 处理导航初始化（在ControlSelect组件中选择导航标签页时触发）
-async function handleNavInit() {
-  await navStartReq('get', mapInfo.value.id as number)
-  // console.log('start navigation')
-  // kinect.setKinect(true)
-}
-
-async function endNavigation() {
-  step.value = 1
-  navEndReq('get', {})
-  // kinect.setKinect(false)
-}
-
 function backToStep1() {
-  endNavigation()
+  step.value = 1
+  kinect.setKinect(false)
 }
-
-function beforeunload() {
-  if (step.value === 2 || step.value === 3) {
-    navEndReq('get', {})
-    kinect.setKinect(false)
-  }
-}
-
-onMounted(() => {
-  const tmpFunc = window.onbeforeunload
-  window.onbeforeunload = () => {
-    beforeunload()
-  }
-})
 
 onUnmounted(() => {
-  beforeunload()
+  kinect.setKinect(false)
 })
 </script>
 

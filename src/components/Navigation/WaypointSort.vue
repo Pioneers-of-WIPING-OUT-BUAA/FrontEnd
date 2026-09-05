@@ -45,6 +45,7 @@
         :editable="false"
         :prop-x="mapInfo.x"
         :prop-y="mapInfo.y"
+        :resolution="mapInfo.resolution"
       ></waypoint-dis>
     </el-card>
   </div>

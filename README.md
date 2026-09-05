@@ -1,5 +1,23 @@
 # 扫荡北航先锋-前端
 
+## 测试与本地运行
+
+```bash
+conda env create -f environment.yml
+conda activate ros-buaa-frontend
+export PATH="$CONDA_PREFIX/bin:$PATH"
+npm ci --registry=https://registry.npmjs.org
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+npm run dev -- --host 127.0.0.1
+```
+
+本地后端默认为 `http://127.0.0.1:8000/api`，ROSBridge 默认为 `ws://127.0.0.1:9090`。
+可按 `.env.example` 设置 `.env.local`；密钥只配置在后端，不能使用 `VITE_` 环境变量保存。
+测试覆盖请求错误处理、ROS 连接生命周期、地图订阅清理、坐标变换和巡检控制状态。
+
 本项目是"扫荡北航"机器人项目的前端用户界面，基于 Vue 3 和 ROS (Robot Operating System) 构建。用户可以通过此界面实时监控机器人状态、进行地图交互和下达控制指令。
 
 ---

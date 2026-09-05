@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineProps, defineEmits, withDefaults } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineProps, defineEmits, withDefaults } from 'vue'
 import { ElMessage } from 'element-plus'
 import { mapMoveReq } from '@/api/mapping'
 import { wsStore } from '@/stores/wsStore'
@@ -62,14 +62,16 @@ import { kinectStore } from '@/stores/kinectStore'
 interface autoProps {
   hasSave: boolean
   isLoading?: boolean
+  active?: boolean
 }
 const props = withDefaults(defineProps<autoProps>(), {
   hasSave: true,
-  isLoading: false
+  isLoading: false,
+  active: false
 })
 const emit = defineEmits(['launch', 'cancel', 'save'])
 
-const launchState = ref(false)
+const launchState = computed(() => props.active)
 const dialogVisible = ref(false)
 const mapName = ref('')
 const kinect = kinectStore()
@@ -125,14 +127,10 @@ function launch() {
     return
   }
   emit('launch')
-  launchState.value = true
-  kinect.setKinect(true)
 }
 
 function cancel() {
   emit('cancel')
-  launchState.value = false
-  kinect.setKinect(false)
   dialogVisible.value = false
 }
 
@@ -140,8 +138,6 @@ function save() {
   emit('save', mapName.value)
   mapName.value = ''
   dialogVisible.value = false
-  launchState.value = false
-  kinect.setKinect(false)
 }
 
 function beforeUnload() {
@@ -150,9 +146,12 @@ function beforeUnload() {
 }
 
 onMounted(() => {
-  window.onbeforeunload = beforeUnload
+  window.addEventListener('pagehide', beforeUnload)
 })
-onUnmounted(beforeUnload)
+onUnmounted(() => {
+  window.removeEventListener('pagehide', beforeUnload)
+  beforeUnload()
+})
 </script>
 
 <style scoped>
@@ -167,8 +166,11 @@ onUnmounted(beforeUnload)
 }
 
 .key-container {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
   gap: 10px;
   margin-top: 15px;
 }
@@ -179,20 +181,23 @@ onUnmounted(beforeUnload)
 }
 
 .map-area {
-  min-height: 500px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  padding: 20px;
+  padding: 12px;
 }
 
 .button-area {
   margin-bottom: 20px;
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: center;
 }
 
 .key-btn {
-  min-width: 80px;
+  min-width: 0;
+  margin: 0;
 }
+.key-btn:last-child { grid-column: 2; }
+.button-area :deep(.el-button + .el-button) { margin-left: 0; }
 </style>

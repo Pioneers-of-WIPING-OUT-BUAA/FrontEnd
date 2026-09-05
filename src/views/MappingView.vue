@@ -2,10 +2,10 @@
   <el-card class="mapping-card">
     <el-container>
       <el-main>
-        <MapCtrl :has-save="true" :is-loading="isLoading" @save="save" @cancel="cancel" @launch="launch">
+        <MapCtrl :has-save="true" :active="active" :is-loading="isLoading" @save="save" @cancel="cancel" @launch="launch">
           <template v-slot:map_display>
             <div class="map-camera-panel">
-              <div style="width: 50%; height: 100%">
+              <div class="map-panel">
               <MapDisplay />
               </div>
               <div class="camera-panel">
@@ -26,8 +26,11 @@ import { ElMessage } from 'element-plus'
 import MapDisplay from '@/components/rosBridge/MapDisplay.vue'
 import MapCtrl from '@/components/Map/MapCtrl.vue'
 import KinectDisplay from '@/components/rosBridge/KinectDisplay.vue'
+import { kinectStore } from '@/stores/kinectStore'
 
 const isLoading = ref(false)
+const active = ref(false)
+const kinect = kinectStore()
 
 async function save(name: string) {
   try {
@@ -35,9 +38,7 @@ async function save(name: string) {
     let response = await mapSaveReq('post', { name: name })
     if (response) {
       ElMessage.success('地图保存成功')
-      setTimeout(() => {
-        cancel()
-      }, 8000)
+      await cancel()
     }
   } catch (error) {
     ElMessage.error('保存地图失败，请重试')
@@ -52,6 +53,8 @@ async function launch() {
     isLoading.value = true
     const response = await mapStartReq('get', {})
     if (response && response.status === 200) {
+      active.value = true
+      kinect.setKinect(true)
       ElMessage.success('建图模式已启动')
     }
   } catch (error) {
@@ -66,6 +69,8 @@ async function cancel() {
   try {
     isLoading.value = true
     await mapStopReq('get', {})
+    active.value = false
+    kinect.setKinect(false)
     ElMessage.info('已退出建图模式')
   } catch (error) {
     ElMessage.error('取消建图失败，请重试')
@@ -81,22 +86,27 @@ async function cancel() {
   padding: 0px;
 }
 .map-camera-panel {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: flex-start;
   justify-content: center;
   width: 100%;
-  height: 600px;
   gap: 24px;
 }
 .camera-panel {
-  width: 50%;
-  height: 100%;
+  width: 100%;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .sidebar {
   border-right: 1px solid #ebeef5;
+}
+.map-panel { min-width: 0; }
+@media (max-width: 720px) {
+  .map-camera-panel { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .mapping-card :deep(.el-main) { padding: 4px; }
+  .mapping-card :deep(.el-card__body) { padding: 10px; }
 }
 </style>

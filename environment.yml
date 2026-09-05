@@ -1,0 +1,6 @@
+name: ros-buaa-frontend
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - nodejs=24
